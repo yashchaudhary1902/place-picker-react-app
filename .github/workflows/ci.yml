@@ -28,10 +28,9 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build --if-present
-    - name: Build and Push docker image
-      uses: mr-smithers-excellent/docker-built-push@v4
-      with: 
-        image: yashcha593/place-picker-react-app
-        registry: docker.io
+    - name: Built and Push Docker image
+      uses: minddocdev/docker-publish-action@master
+      with:
+        name: yashcha593/place-picker-react-app
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
