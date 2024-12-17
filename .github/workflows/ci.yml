@@ -1,7 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: Node.js CI with Dockerfile Auto-Generation
 
 on:
   push:
@@ -17,18 +14,67 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
+    # Step 1: Checkout the repository
     - uses: actions/checkout@v4
+
+    # Step 2: Use the specified Node.js version
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+
+    # Step 3: Install dependencies
     - run: npm ci
+
+    # Step 4: Build the project
     - run: npm run build --if-present
-    - name: Built and Push Docker image
+
+    # Step 5: Generate the Dockerfile
+    - name: Create Dockerfile
+      run: |
+        cat <<EOT > Dockerfile
+        # Stage 1: Build the React app
+        FROM node:18 AS build
+
+        # Set the working directory
+        WORKDIR /app
+
+        # Copy package.json and package-lock.json
+        COPY package*.json ./
+
+        # Install dependencies
+        RUN npm install
+
+        # Copy the entire project to the container
+        COPY . .
+
+        # Build the React app for production
+        RUN npm run build
+
+        # Stage 2: Serve the React app with a lightweight server
+        FROM node:18
+
+        # Install a lightweight HTTP server for serving static files
+        RUN npm install -g serve
+
+        # Set the working directory
+        WORKDIR /app
+
+        # Copy the built React app from the previous stage
+        COPY --from=build /app/build ./build
+
+        # Expose the port for the server
+        EXPOSE 3000
+
+        # Start the React app using the HTTP server
+        CMD ["serve", "-s", "build", "-l", "3000"]
+        EOT
+
+    # Step 6: Build and push the Docker image
+    - name: Build and Push Docker image
       uses: minddocdev/docker-publish-action@master
       with:
         name: yashcha593/place-picker-react-app
