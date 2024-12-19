@@ -64,7 +64,7 @@ jobs:
         WORKDIR /app
 
         # Copy the built React app from the previous stage
-        COPY --from=build /app/build .
+        COPY --from=build /app/src ./src
 
         # Expose the port for the server
         EXPOSE 3000
